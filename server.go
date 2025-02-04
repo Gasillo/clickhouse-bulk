@@ -36,6 +36,13 @@ type Status struct {
 	Tables    map[string]*Table            `json:"tables,omitempty"`
 }
 
+// TablesStats - total tables stats
+type TablesStats struct {
+	TablesTotal int `json:"tables_total"`
+	TablesEmpty int `json:"tables_empty"`
+	Rows        int `json:"rows"`
+}
+
 // NewServer - create server
 func NewServer(listen string, collector *Collector, debug bool, logQueries bool) *Server {
 	return &Server{listen, collector, debug, logQueries, echo.New()}
@@ -99,6 +106,24 @@ func (server *Server) tablesCleanHandler(c echo.Context) error {
 	return c.JSON(200, Status{Status: "cleaned empty tables"})
 }
 
+// debug tables stats
+func (server *Server) tablesStatsHandler(c echo.Context) error {
+	rowsTotal := 0
+	tablesTotal := 0
+	tablesEmpty := 0
+	for k, t := range server.Collector.Tables {
+		rows := t.GetCountRows()
+		if rows > 0 {
+			tablesTotal++
+			rowsTotal += rows
+		} else {
+			tablesEmpty++
+		}
+		log.Printf("DEBUG: table: %+v rows:%+v\n", k, rows)
+	}
+	return c.JSON(200, TablesStats{TablesTotal: tablesTotal, TablesEmpty: tablesEmpty, Rows: rowsTotal})
+}
+
 // Start - start http server
 func (server *Server) Start(cnf Config) error {
 	if cnf.UseTLS {
@@ -124,6 +149,7 @@ func InitServer(listen string, collector *Collector, debug bool, logQueries bool
 	server.echo.GET("/debug/freemem", server.freeMemHandler)
 	server.echo.GET("/debug/pprof/*", echo.WrapHandler(http.DefaultServeMux))
 	server.echo.GET("/debug/tables-clean", server.tablesCleanHandler)
+	server.echo.GET("/debug/tables-stats", server.tablesStatsHandler)
 
 	return server
 }
