@@ -115,6 +115,13 @@ func (t *Table) GetCount() int {
 	return t.count
 }
 
+// GetCountRows - Rows count
+func (t *Table) GetCountRows() int {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return len(t.Rows)
+}
+
 // RunTimer - timer for periodical savings data
 func (t *Table) RunTimer() *chan struct{} {
 	done := make(chan struct{})

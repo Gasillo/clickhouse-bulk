@@ -105,6 +105,16 @@ manual check main metrics
 * `ch_received_count 40` - received requests count from launch
 * `ch_sent_count 1` - sent request count from launch
 
+### Tables stats
+`curl -s http://127.0.0.1:8124/debug/tables-stats`
+
+```json lines
+{
+  "tables_total": 3,
+  "tables_empty": 1,
+  "rows": 1500
+}
+```
 
 ### Tips
 
