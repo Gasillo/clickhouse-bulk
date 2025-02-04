@@ -30,6 +30,7 @@ type Config struct {
 	DumpDir           string           `json:"dump_dir"`
 	Debug             bool             `json:"debug"`
 	LogQueries        bool             `json:"log_queries"`
+	ShutdownFast      bool             `json:"shutdown_fast"`
 	MetricsPrefix     string           `json:"metrics_prefix"`
 	UseTLS            bool             `json:"use_tls"`
 	TLSCertFile       string           `json:"tls_cert_file"`
@@ -47,6 +48,7 @@ func defaultConfig() Config {
 		DumpDir:           "dumps",
 		Debug:             false,
 		LogQueries:        false,
+		ShutdownFast:      false,
 		MetricsPrefix:     "",
 		UseTLS:            false,
 		TLSCertFile:       "",
@@ -89,15 +91,15 @@ func readEnvInt(name string, value *int) {
 }
 
 func readEnvBool(name string, value *bool) {
-    s := os.Getenv(name)
-    if s != "" {
-        v, err := strconv.ParseBool(s)
-        if err != nil {
-            log.Printf("ERROR: Wrong %+v env: %+v\n", name, err)
-        } else {
-            *value = v
-        }
-    }
+	s := os.Getenv(name)
+	if s != "" {
+		v, err := strconv.ParseBool(s)
+		if err != nil {
+			log.Printf("ERROR: Wrong %+v env: %+v\n", name, err)
+		} else {
+			*value = v
+		}
+	}
 }
 
 func readEnvString(name string, value *string) {
@@ -106,7 +108,6 @@ func readEnvString(name string, value *string) {
 		*value = s
 	}
 }
-
 
 // ReadConfig init config data
 func ReadConfig(configFile string) (Config, error) {
@@ -136,6 +137,7 @@ func ReadConfig(configFile string) (Config, error) {
 	readEnvBool("CLICKHOUSE_INSECURE_TLS_SKIP_VERIFY", &cnf.Clickhouse.TLSSkipVerify)
 	readEnvString("METRICS_PREFIX", &cnf.MetricsPrefix)
 	readEnvBool("LOG_QUERIES", &cnf.LogQueries)
+	readEnvBool("SHUTDOWN_FAST", &cnf.ShutdownFast)
 
 	serversList := os.Getenv("CLICKHOUSE_SERVERS")
 	if serversList != "" {

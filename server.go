@@ -129,7 +129,8 @@ func InitServer(listen string, collector *Collector, debug bool, logQueries bool
 }
 
 // SafeQuit - safe prepare to quit
-func SafeQuit(collect *Collector, sender Sender) {
+func SafeQuit(collect *Collector, sender Sender, shutdownFast bool) {
+	sender.SetShutdownFast(shutdownFast)
 	collect.FlushAll()
 	if count := sender.Len(); count > 0 {
 		log.Printf("Sending %+v tables\n", count)
@@ -166,7 +167,7 @@ func RunServer(cnf Config) {
 			log.Printf("STOP signal\n")
 			if err := srv.Shutdown(ctx); err != nil {
 				log.Printf("Shutdown error %+v\n", err)
-				SafeQuit(collect, sender)
+				SafeQuit(collect, sender, cnf.ShutdownFast)
 				os.Exit(1)
 			}
 		}
@@ -179,7 +180,7 @@ func RunServer(cnf Config) {
 	err := srv.Start(cnf)
 	if err != nil {
 		log.Printf("ListenAndServe: %+v\n", err)
-		SafeQuit(collect, sender)
+		SafeQuit(collect, sender, cnf.ShutdownFast)
 		os.Exit(1)
 	}
 }

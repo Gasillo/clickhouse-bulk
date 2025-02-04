@@ -33,6 +33,7 @@ type Clickhouse struct {
 	Dumper         Dumper
 	wg             sync.WaitGroup
 	Transport      *http.Transport
+	shutdownFast   bool
 }
 
 // ClickhouseRequest - request struct for queue
@@ -67,7 +68,7 @@ func NewClickhouse(downTimeout int, connectTimeout int, tlsServerName string, tl
 		c.ConnectTimeout = 10
 	}
 	c.Servers = make([]*ClickhouseServer, 0)
-	c.Queue = queue.New(1000)
+	c.Queue = queue.New(4000)
 	c.Transport = &http.Transport{
 		TLSClientConfig: tlsConfig,
 	}
@@ -81,7 +82,7 @@ func (c *Clickhouse) AddServer(url string, logQueries bool) {
 	defer c.mu.Unlock()
 	c.Servers = append(c.Servers, &ClickhouseServer{URL: url, Client: &http.Client{
 		Timeout: time.Second * time.Duration(c.ConnectTimeout), Transport: c.Transport,
-	}, LogQueries: logQueries })
+	}, LogQueries: logQueries})
 }
 
 // DumpServers - dump servers state to prometheus
@@ -156,6 +157,17 @@ func (c *Clickhouse) Empty() bool {
 	return c.Queue.Empty()
 }
 
+// SetShutdownFast - set shutdown flag and stop http connections
+func (c *Clickhouse) SetShutdownFast(shutdownFast bool) {
+	c.shutdownFast = shutdownFast
+	c.ConnectTimeout = 1
+}
+
+// IsShutdownFast - check shutdown flag
+func (c *Clickhouse) IsShutdownFast() bool {
+	return c.shutdownFast
+}
+
 // Run server
 func (c *Clickhouse) Run() {
 	var err error
@@ -164,16 +176,20 @@ func (c *Clickhouse) Run() {
 		datas, err = c.Queue.Poll(1, time.Second*5)
 		if err == nil {
 			data := datas[0].(*ClickhouseRequest)
-			resp, status, err := c.SendQuery(data)
-			if err != nil {
-				log.Printf("ERROR: Send (%+v) %+v; response %+v\n", status, err, resp)
-				prefix := "1"
-				if status >= 400 && status < 502 {
-					prefix = "2"
-				}
-				c.Dump(data.Params, data.Content, resp, prefix, status)
+			if c.IsShutdownFast() {
+				c.Dump(data.Params, data.Content, "process shutdown", "3", 0)
 			} else {
-				sentCounter.Inc()
+				resp, status, err := c.SendQuery(data)
+				if err != nil {
+					log.Printf("ERROR: Send (%+v) %+v; response %+v\n", status, err, resp)
+					prefix := "1"
+					if status >= 400 && status < 502 {
+						prefix = "2"
+					}
+					c.Dump(data.Params, data.Content, resp, prefix, status)
+				} else {
+					sentCounter.Inc()
+				}
 			}
 			c.DumpServers()
 			c.wg.Done()
@@ -225,7 +241,7 @@ func (c *Clickhouse) SendQuery(r *ClickhouseRequest) (response string, status in
 		s := c.GetNextServer()
 		if s != nil {
 			response, status, err = s.SendQuery(r)
-			if errors.Is(err, ErrServerIsDown) {
+			if errors.Is(err, ErrServerIsDown) && !c.IsShutdownFast() {
 				log.Printf("ERROR: server down (%+v): %+v\n", status, response)
 				continue
 			}

@@ -77,7 +77,7 @@ func TestServer_SafeQuit(t *testing.T) {
 
 	assert.False(t, collect.Empty())
 
-	SafeQuit(collect, sender)
+	SafeQuit(collect, sender, false)
 
 	assert.True(t, collect.Empty())
 	assert.True(t, sender.Empty())
@@ -117,7 +117,7 @@ func TestServer_MultiServer(t *testing.T) {
 
 	assert.False(t, collect.Empty())
 
-	SafeQuit(collect, sender)
+	SafeQuit(collect, sender, false)
 	time.Sleep(100) // wait for http servers process requests
 
 	assert.Equal(t, 3, len(received))

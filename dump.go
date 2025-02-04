@@ -183,16 +183,22 @@ func (d *FileDumper) Listen(sender Sender, interval int) {
 	}
 	ticker := time.NewTicker(time.Second * time.Duration(interval))
 	go func() {
+		time.Sleep(1)
+		d.ProcessAllDumps(sender)
 		for range ticker.C {
-			for {
-				err := d.ProcessNextDump(sender)
-				if err != nil {
-					if !errors.Is(err, ErrNoDumps) {
-						log.Printf("ERROR: %+v\n", err)
-					}
-					break
-				}
-			}
+			d.ProcessAllDumps(sender)
 		}
 	}()
+}
+
+func (d *FileDumper) ProcessAllDumps(sender Sender) {
+	for {
+		err := d.ProcessNextDump(sender)
+		if err != nil {
+			if !errors.Is(err, ErrNoDumps) {
+				log.Printf("ERROR: %+v\n", err)
+			}
+			break
+		}
+	}
 }

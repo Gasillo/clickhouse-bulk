@@ -62,6 +62,7 @@ INSERT INTO table3 (c1, c2, c3) VALUES ('v1', 'v2', 'v3')('v4', 'v5', 'v6')
   "remove_query_id": true, // some drivers sends query_id which prevents inserts to be batched
   "dump_check_interval": 300, // interval for try to send dumps (seconds); -1 to disable
   "debug": false, // log incoming requests
+  "shutdown_fast": false, // dump all data to files instead of sending it to ClickHouse (shutdown speedup for hundreds of tables)
   "dump_dir": "dumps", // directory for dump unsended data (if clickhouse errors)
   "clickhouse": {
     "down_timeout": 60, // wait if server in down (seconds)
@@ -89,6 +90,7 @@ INSERT INTO table3 (c1, c2, c3) VALUES ('v1', 'v2', 'v3')('v4', 'v5', 'v6')
 * `CLICKHOUSE_TLS_SERVER_NAME` - server name for TLS certificate verification
 * `CLICKHOUSE_INSECURE_TLS_SKIP_VERIFY` - skip certificate verification at all
 * `METRICS_PREFIX` - prefix for prometheus metrics
+* `SHUTDOWN_FAST` - dump all data to files instead of sending it to ClickHouse (shutdown speedup for hundreds of tables)
 
 ### Quickstart
 

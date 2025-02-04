@@ -13,12 +13,15 @@ type Sender interface {
 	Len() int64
 	Empty() bool
 	WaitFlush() (err error)
+	SetShutdownFast(shutdownFast bool)
+	IsShutdownFast() bool
 }
 
 type fakeSender struct {
 	sendHistory      []string
 	sendQueryHistory []string
 	mu               sync.Mutex
+	shutdownFast     bool
 }
 
 func (s *fakeSender) Send(r *ClickhouseRequest) {
@@ -43,4 +46,12 @@ func (s *fakeSender) Empty() bool {
 
 func (s *fakeSender) WaitFlush() error {
 	return nil
+}
+
+func (s *fakeSender) SetShutdownFast(shutdownFast bool) {
+	s.shutdownFast = shutdownFast
+}
+
+func (s *fakeSender) IsShutdownFast() bool {
+	return s.shutdownFast
 }
